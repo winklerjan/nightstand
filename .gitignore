@@ -1,0 +1,36 @@
+# Rust / Tauri
+target/
+src-tauri/target/
+
+# Node / SvelteKit
+node_modules/
+.svelte-kit/
+dist/
+build/
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+backend/dist/
+backend/build/
+*.egg-info/
+dist/
+.cache/
+
+# PyInstaller
+*.spec
+
+# Editor noise
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
