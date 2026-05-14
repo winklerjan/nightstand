@@ -1,0 +1,20 @@
+{
+  "name": "nightstand-local",
+  "interface": {
+    "displayName": "Nightstand Local"
+  },
+  "plugins": [
+    {
+      "name": "baton-pass",
+      "source": {
+        "source": "local",
+        "path": "./plugins/baton-pass"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
