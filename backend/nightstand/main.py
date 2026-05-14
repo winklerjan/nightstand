@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from nightstand.api import library
 from nightstand.services import calibre
 from nightstand.services.calibre import CalibreLockedError
 
@@ -19,6 +20,8 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+app.include_router(library.router)
 
 
 @app.get("/health")

@@ -2,9 +2,9 @@
   "version": 1,
   "state": "idle",
   "milestone": "M1",
-  "lastMove": "m1-design",
-  "lastAgent": "claude-sonnet-4-6",
+  "lastMove": "save-state",
+  "lastAgent": "codex-gpt-5.5",
   "nextAgent": null,
   "updatedAt": "2026-05-14",
-  "summary": "M1 Library Browser design approved and committed. Backend (4 endpoints) and frontend (component structure, stores, filter logic) fully spec'd. Next: invoke writing-plans, then implement per docs/superpowers/specs/2026-05-14-m1-library-browser-design.md."
+  "summary": "M1 Library Browser implementation is written but uncommitted. Backend library routes, Calibre read helpers, frontend stores, table/grid views, filters, and detail panel are in place. Verification passed: backend compile/import, frontend check with one existing node type warning, and frontend build. Manual API curl and pnpm dev verification are not run due sandbox network/dev-server constraints. Worktree also contains untracked repo-local Codex Baton Pass plugin files."
 }

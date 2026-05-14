@@ -1,8 +1,8 @@
 # Current State
 
 **Updated:** 2026-05-14
-**Phase:** M1 — Library Browser (design approved, implementation not started)
-**Last agent:** Claude Sonnet 4.6
+**Phase:** M1 — Library Browser (implementation written, manual app verification pending)
+**Last agent:** Codex GPT-5.5
 
 ---
 
@@ -29,14 +29,24 @@
   - `docs/superpowers/specs/2026-05-14-m1-library-browser-design.md` — approved design spec
   - Key decisions: single load (~300 books), both table + grid views (toggle, localStorage), slide-in detail panel, AND/OR filter toggle, lazy cover loading, metadata extras embedded in book detail response
 
+- **M1 implementation:** written, not committed
+  - Backend: read-only `/library/books`, `/library/books/{id}`, `/library/books/{id}/cover`, and `/library/tags` routes
+  - Backend: Calibre list/detail/tag/cover helpers, metadata extras reader, `CalibreLockedError` mapped to HTTP 423
+  - Frontend: Svelte stores, in-browser filtering, table/grid views, lazy cover placeholders, filter sidebar, detail panel, disabled M2 edit button
+  - Plan saved at `docs/superpowers/plans/2026-05-14-m1-library-browser.md`
+
 ## What's in progress
 
-Nothing. Clean handoff.
+M1 needs manual app/API verification and review before commit. The worktree is not clean. In addition to M1 files, repo-local Codex Baton Pass plugin files are present but untracked:
+
+- `.agents/plugins/marketplace.json`
+- `plugins/baton-pass/.codex-plugin/plugin.json`
+- `plugins/baton-pass/skills/baton-pass/SKILL.md`
 
 ## Blockers
 
-None.
+No code blocker found. Sandbox network isolation prevented curl from reaching the locally started sidecar, so `/library/*` endpoint behavior still needs manual verification in a normal dev shell. Decide later whether the repo-local Codex plugin files should be committed or kept local-only.
 
 ## Next
 
-Implement M1 per `docs/superpowers/specs/2026-05-14-m1-library-browser-design.md`. The next agent should invoke `/foresight` then `writing-plans` to create the implementation plan before touching code.
+Run manual verification in a normal shell: start `pnpm dev`, confirm the M1 browser loads, exercise table/grid, filters, detail panel, covers, and Calibre lock behavior, then commit the M1 implementation separately from the repo-local Codex plugin files.

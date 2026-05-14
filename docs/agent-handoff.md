@@ -26,7 +26,7 @@ When state files conflict with code or git history, this order wins:
 
 ## Claiming a session
 
-Run `/foresight` (or read `current-state.md` + `next-task.md`) to verify alignment before writing any code.
+Run foresight before writing any code. In Claude, use `/foresight`. In Codex TUI, use `$baton-pass run foresight` or plain language such as "Use Baton Pass to run foresight for this repo"; `/foresight` is not a native Codex slash command.
 
 ## Ending a session
 
