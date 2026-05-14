@@ -39,3 +39,23 @@ Append-only. Never overwrite — only add new entries at the bottom.
 - `docs/ai/project.md` created as tech-stack quick-ref (not specified in spec but natural complement)
 
 **State at end:** Agentic setup complete. Awaiting M1 design Q&A with user before implementation.
+
+---
+
+## 2026-05-14 — Session 3 (Claude Sonnet 4.6)
+
+**Completed:**
+- Ran brainstorming skill for M1 Library Browser
+- Resolved all open design questions with user:
+  - Both table + grid views with toggle (localStorage persistence)
+  - Slide-in detail panel
+  - Read `~/.config/calibre_helper/metadata.json` extras (embedded in book detail response)
+  - Single load of all books (~300), in-browser filtering
+  - AND/OR filter toggle (user-selectable)
+  - Lazy cover loading (`loading="lazy"`)
+- Wrote and committed `docs/superpowers/specs/2026-05-14-m1-library-browser-design.md`
+- Updated `docs/current-state.md`, `docs/next-task.md`, `baton-pass.state.json`
+
+**Deviations from spec:** none
+
+**State at end:** M1 design approved and committed. Implementation not started. Next agent should invoke writing-plans before writing code.
