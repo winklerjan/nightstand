@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "state": "idle",
+  "milestone": "M1",
+  "lastMove": "agentic-setup",
+  "lastAgent": "claude-sonnet-4-6",
+  "nextAgent": null,
+  "updatedAt": "2026-05-14",
+  "summary": "M0 complete. Agentic workflow setup complete. M1 Library Browser is next — resolve open questions in docs/M1_LIBRARY_BROWSER.md before implementation."
+}

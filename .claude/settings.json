@@ -1,7 +1,13 @@
 {
   "enabledPlugins": {
-    "superpowers@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": false,
     "code-review@claude-plugins-official": true,
     "superpowers@superpowers-marketplace": true
-  }
+  },
+  "deny": [
+    "Read:.env*",
+    "Edit:.env*",
+    "Write:.env*",
+    "Bash:*cat*.env*"
+  ]
 }
