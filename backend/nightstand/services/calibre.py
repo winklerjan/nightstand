@@ -201,14 +201,15 @@ def get_tags(library_path: str) -> list[str]:
 
 
 def read_metadata_extras(book_title: str, book_authors: list[str]) -> dict[str, list[str]]:
+    empty = {"subgenres": [], "themes": []}
     metadata_path = Path.home() / ".config" / "calibre_helper" / "metadata.json"
     if not metadata_path.exists():
-        return {}
+        return empty
 
     try:
         raw_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {}
+        return empty
 
     first_author = book_authors[0] if book_authors else ""
     wanted_title = _normalize_lookup(book_title)
@@ -218,7 +219,7 @@ def read_metadata_extras(book_title: str, book_authors: list[str]) -> dict[str, 
     elif isinstance(raw_metadata, dict):
         records = raw_metadata.values()
     else:
-        return {}
+        return empty
 
     for record in records:
         if not isinstance(record, dict):
@@ -231,7 +232,7 @@ def read_metadata_extras(book_title: str, book_authors: list[str]) -> dict[str, 
                 "subgenres": _as_list(record.get("subgenres")),
                 "themes": _as_list(record.get("themes")),
             }
-    return {}
+    return empty
 
 
 def get_cover_path(library_path: str, book_id: int) -> Path | None:
