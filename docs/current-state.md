@@ -1,8 +1,8 @@
 # Current State
 
-**Updated:** 2026-05-14
-**Phase:** M1 — Library Browser (implementation written, manual app verification pending)
-**Last agent:** Codex GPT-5.5
+**Updated:** 2026-05-15
+**Phase:** M1 — Library Browser (implemented and committed; three runtime bugs fixed; book detail loading fix unverified)
+**Last agent:** Claude Sonnet 4.6
 
 ---
 
@@ -16,37 +16,28 @@
   - `_clean_env()` in calibre service strips venv to prevent shebang collision
 
 - **Agentic workflow setup:** complete
-  - `AGENTS.md` — shared source-of-truth for all agents
-  - `CLAUDE.md` — Claude-specific config (skills, RTK, memory)
-  - `docs/current-state.md`, `docs/next-task.md`, `docs/agent-handoff.md`, `docs/progress.md`
-  - `baton-pass.config.json`, `baton-pass.state.json`
-  - `.claude/settings.json` — deny rules added
-  - `.claude/settings.local.json` — permission allowlist (gitignored)
-  - `.claude/commands/` — foresight, baton-pass, save-state, party-check, dragon-dance, hindsight, new-game
-  - `docs/ai/project.md` — tech stack quick-ref
 
 - **M1 design:** complete and committed
-  - `docs/superpowers/specs/2026-05-14-m1-library-browser-design.md` — approved design spec
-  - Key decisions: single load (~300 books), both table + grid views (toggle, localStorage), slide-in detail panel, AND/OR filter toggle, lazy cover loading, metadata extras embedded in book detail response
 
-- **M1 implementation:** written, not committed
-  - Backend: read-only `/library/books`, `/library/books/{id}`, `/library/books/{id}/cover`, and `/library/tags` routes
-  - Backend: Calibre list/detail/tag/cover helpers, metadata extras reader, `CalibreLockedError` mapped to HTTP 423
-  - Frontend: Svelte stores, in-browser filtering, table/grid views, lazy cover placeholders, filter sidebar, detail panel, disabled M2 edit button
-  - Plan saved at `docs/superpowers/plans/2026-05-14-m1-library-browser.md`
+- **M1 implementation:** complete and committed (`af73161`)
+
+- **M1 runtime bug fixes:** committed (`abf191d`)
+  - **Covers not loading:** `get_cover_path` was calling `calibredb get_metadata --for-machine` — `--for-machine` is invalid for `get_metadata`. Replaced with a `_folder_cache` (populated lazily from `calibredb list --fields id,formats`) that derives `cover.jpg` path from the book's format directory.
+  - **Covers reloading on view switch:** added `Cache-Control: public, max-age=3600` to the cover `FileResponse`.
+  - **Concurrent calibredb calls:** `list_books` now pre-populates `_folder_cache` so all subsequent cover requests are pure dict lookups — zero calibredb processes spawned during lazy cover loading.
+  - **Book detail comments hang:** `calibredb list --fields ...,comments,...` hangs on this library; comments are now read directly from the book folder's `metadata.opf` via `xml.etree.ElementTree`.
+  - **BookDetail loading pattern:** replaced manual `requestToken` / `$effect` pattern with `{#await bookPromise}` — Svelte owns the loading/error lifecycle, eliminating the token-mismatch failure mode.
+
+- **Calibre data backup:** taken 2026-05-15 at `/Documents/Kindle/calibre backup 2026-05-15/` (library + config, 557 MB).
 
 ## What's in progress
 
-M1 needs manual app/API verification and review before commit. The worktree is not clean. In addition to M1 files, repo-local Codex Baton Pass plugin files are present but untracked:
-
-- `.agents/plugins/marketplace.json`
-- `plugins/baton-pass/.codex-plugin/plugin.json`
-- `plugins/baton-pass/skills/baton-pass/SKILL.md`
+Nothing.
 
 ## Blockers
 
-No code blocker found. Sandbox network isolation prevented curl from reaching the locally started sidecar, so `/library/*` endpoint behavior still needs manual verification in a normal dev shell. Decide later whether the repo-local Codex plugin files should be committed or kept local-only.
+**Book detail "Loading book..." still unverified.** The last user report ("nah didn't help") referred to the previous fix (removing `--search` from calibredb). The current fix (pre-populated folder cache + `{#await}`) has NOT yet been tested by the user — the baton-pass was requested immediately after. The backend endpoint was confirmed working in isolation via curl. Next agent should verify the fix works in `pnpm dev` before moving on.
 
 ## Next
 
-Run manual verification in a normal shell: start `pnpm dev`, confirm the M1 browser loads, exercise table/grid, filters, detail panel, covers, and Calibre lock behavior, then commit the M1 implementation separately from the repo-local Codex plugin files.
+Verify book detail loading in `pnpm dev`. If still broken, open Tauri devtools (F12), check the Network tab when clicking a book, and report what the `/library/books/{id}` request does (hangs, errors, or succeeds). Then move to M2 design.

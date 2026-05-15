@@ -1,65 +1,38 @@
 # Next Task
 
-**Task:** M1 — Library Browser (manual verification and commit)
-**Spec:** `docs/superpowers/specs/2026-05-14-m1-library-browser-design.md`
-**Plan:** `docs/superpowers/plans/2026-05-14-m1-library-browser.md`
+**Task:** Verify book detail loading fix, then begin M2 design
+**Spec:** `docs/M1_LIBRARY_BROWSER.md` (for M2 scope reference)
 
 ---
 
-## Verification checklist
+## Step 1 — Verify book detail fix (required before M2)
 
-1. Run `pnpm dev` from repo root in a normal shell.
-2. Confirm the app launches and retrieves the sidecar port.
-3. Confirm `GET /library/books`, `GET /library/tags`, `GET /library/books/{id}`, and `GET /library/books/{id}/cover` behave as expected.
-4. Confirm Calibre GUI lock returns HTTP 423 and the UI shows the lock banner/panel error.
-5. Confirm table/grid toggle works and persists in `localStorage`.
-6. Confirm search, tag OR, tag AND, and language filters work.
-7. Confirm clicking a book opens the right-side detail panel.
-8. Confirm missing covers show placeholders, not broken image UI.
-9. Confirm no raw file paths are visible in the UI.
-10. Confirm no Calibre write commands were added.
+1. Run `pnpm dev` from repo root.
+2. Wait for library to load.
+3. Click any book — the right-side detail panel should open and show book data within a second or two.
+4. If it still shows "Loading book..." indefinitely:
+   - Open Tauri devtools (right-click → Inspect or F12)
+   - Go to Network tab
+   - Click a book and observe what `/library/books/{id}` does (pending, error, or response)
+   - Report the finding — do NOT attempt further fixes without this evidence
 
-## Current changed files
+## Step 2 — M2 design (only after Step 1 passes)
 
-**Backend:**
-- `backend/nightstand/services/calibre.py`
-- `backend/nightstand/api/library.py`
-- `backend/nightstand/main.py`
+Run the brainstorming skill before any design or implementation. M2 scope is metadata editing — likely:
+- Edit tags, series, language, pubdate fields
+- Write back via `calibredb set_metadata`
+- The "Coming in M2" button in the detail panel is the entry point
 
-**Frontend:**
-- `frontend/src/routes/+page.svelte`
-- `frontend/src/lib/types.ts`
-- `frontend/src/lib/store/library.ts`
-- `frontend/src/lib/components/FilterSidebar.svelte`
-- `frontend/src/lib/components/BookTable.svelte`
-- `frontend/src/lib/components/BookGrid.svelte`
-- `frontend/src/lib/components/BookRow.svelte`
-- `frontend/src/lib/components/BookCard.svelte`
-- `frontend/src/lib/components/BookDetail.svelte`
-
-**Docs/state:**
-- `docs/superpowers/plans/2026-05-14-m1-library-browser.md`
-- `baton-pass.state.json`
-- `docs/current-state.md`
-- `docs/next-task.md`
-- `docs/progress.md`
-- `docs/agent-handoff.md`
-
-**Untracked local plugin files, decide separately:**
-- `.agents/plugins/marketplace.json`
-- `plugins/baton-pass/.codex-plugin/plugin.json`
-- `plugins/baton-pass/skills/baton-pass/SKILL.md`
+Ask the user about scope before writing any spec.
 
 ## Do not touch
 
-- `src-tauri/` — no Rust changes needed for M1
-- Any calibredb write operations
+- `src-tauri/` — no Rust changes needed
+- `calibredb embed_metadata` — forbidden (destroys normalized filenames)
+- Any of the M1 read endpoints unless they're still broken
 
 ## Verification already run
 
-- `env UV_CACHE_DIR=/tmp/nightstand-uv-cache uv run python -m compileall nightstand` — passed
-- `env UV_CACHE_DIR=/tmp/nightstand-uv-cache uv run python -c 'import nightstand.main; print("import ok")'` — passed
-- `pnpm --filter frontend check` — passed with one existing warning: missing type definition file for `node`
-- `pnpm --filter frontend build` — passed
-- `rg "127\\.0\\.0\\.1" frontend -n` — passed, no matches
-- Manual curl/API verification — not run due sandbox network isolation
+- `pnpm --filter frontend check` — 0 errors, 1 pre-existing warning
+- `uv run python -c 'import nightstand.main'` — passes
+- `curl http://localhost:8765/library/books/3` (standalone backend) — returns correct JSON with comments

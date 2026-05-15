@@ -98,3 +98,27 @@ Append-only. Never overwrite — only add new entries at the bottom.
 - Manual `pnpm dev` UI verification — not run due sandbox/dev-server constraints
 
 **State at end:** M1 implementation is written but uncommitted. Next step is manual verification in a normal shell, then commit M1 separately from the untracked repo-local Codex plugin files.
+
+---
+
+## 2026-05-15 — Session 6 (Claude Sonnet 4.6)
+
+**Completed:**
+- Analysed app state; found `docs/current-state.md` was stale (M1 was already committed as `af73161`).
+- Took Calibre data backup to `/Documents/Kindle/calibre backup 2026-05-15/` (library + config, 557 MB).
+- Diagnosed and fixed three M1 runtime bugs (commit `abf191d`):
+  1. **Covers not loading** — `get_cover_path` called `calibredb get_metadata --for-machine`, which is not a valid flag for that subcommand. Replaced with `_folder_cache` (lazily built from `calibredb list --fields id,formats`) that derives `cover.jpg` from each book's format directory.
+  2. **Covers reloading on view switch** — added `Cache-Control: public, max-age=3600` to the cover `FileResponse`.
+  3. **Concurrent calibredb traffic** — `list_books` now pre-populates `_folder_cache` so all subsequent cover requests are pure dict lookups with no calibredb process spawned.
+  4. **Book detail comments hang** — `calibredb list --fields ...,comments,...` hangs on this library; comments now read directly from `metadata.opf` via `xml.etree.ElementTree`.
+  5. **BookDetail loading pattern** — replaced manual `requestToken`/`$effect` with `{#await bookPromise}`; Svelte owns the lifecycle, eliminating the token-mismatch failure mode.
+- Confirmed backend endpoint works standalone: `curl http://localhost:8765/library/books/3` returns correct JSON in < 1 s.
+
+**Deviations from spec:** none (bug fixes only, no scope change).
+
+**Verification:**
+- `pnpm --filter frontend check` — 0 errors, 1 pre-existing node-types warning
+- `uv run python -c 'import nightstand.main'` — passed
+- `curl http://localhost:8765/library/books/3` — correct JSON with comments returned
+
+**State at end:** M1 bug fixes committed. Book detail fix (`{#await}` + folder cache) has not been user-verified in `pnpm dev` — the session ended before the user could test. Covers and caching fixes were confirmed working by the user ("everything's fixed except for loading book").

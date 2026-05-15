@@ -2,9 +2,9 @@
   "version": 1,
   "state": "idle",
   "milestone": "M1",
-  "lastMove": "save-state",
-  "lastAgent": "codex-gpt-5.5",
+  "lastMove": "baton-pass",
+  "lastAgent": "claude-sonnet-4-6",
   "nextAgent": null,
-  "updatedAt": "2026-05-14",
-  "summary": "M1 Library Browser implementation is written but uncommitted. Backend library routes, Calibre read helpers, frontend stores, table/grid views, filters, and detail panel are in place. Verification passed: backend compile/import, frontend check with one existing node type warning, and frontend build. Manual API curl and pnpm dev verification are not run due sandbox network/dev-server constraints. Worktree also contains untracked repo-local Codex Baton Pass plugin files."
+  "updatedAt": "2026-05-15",
+  "summary": "M1 runtime bugs fixed and committed (abf191d). Covers load correctly and are browser-cached. Book detail loading fix ({#await} + pre-populated folder cache) committed but not yet user-verified in pnpm dev — session ended before user could test. Backend endpoint confirmed working standalone via curl. Next: verify book detail in pnpm dev; if still broken, open Tauri devtools and inspect the /library/books/{id} network request. Then move to M2 design (brainstorm first)."
 }
