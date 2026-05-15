@@ -2,16 +2,9 @@
   import { backendBase, selectedBookId } from "$lib/store/library";
   import type { BookDetail } from "$lib/types";
 
-  let detail = $state<BookDetail | null>(null);
-  let detailError = $state<string | null>(null);
-  let loading = $state(false);
+  const cache = new Map<number, BookDetail>();
   let coverFailed = $state(false);
-  let requestToken = 0;
-
-  const year = $derived(detail?.pubdate ? detail.pubdate.slice(0, 4) : "");
-  const hasExtras = $derived(
-    Boolean(detail && (detail.extras.subgenres.length > 0 || detail.extras.themes.length > 0)),
-  );
+  let bookPromise = $state<Promise<BookDetail> | null>(null);
 
   const close = (): void => {
     selectedBookId.set(null);
@@ -20,39 +13,26 @@
   $effect(() => {
     const id = $selectedBookId;
     const base = $backendBase;
-    const token = ++requestToken;
     coverFailed = false;
 
     if (id === null || base === null) {
-      detail = null;
-      detailError = null;
-      loading = false;
+      bookPromise = null;
       return;
     }
 
-    loading = true;
-    detail = null;
-    detailError = null;
+    const cached = cache.get(id);
+    if (cached) {
+      bookPromise = Promise.resolve(cached);
+      return;
+    }
 
-    fetch(`${base}/library/books/${id}`)
-      .then(async (response) => {
-        if (response.status === 423) {
-          throw new Error("Calibre is open - close it and retry.");
-        }
-        if (!response.ok) {
-          throw new Error(`Book detail failed with HTTP ${response.status}`);
-        }
-        return (await response.json()) as BookDetail;
-      })
-      .then((book) => {
-        if (token === requestToken) detail = book;
-      })
-      .catch((error: unknown) => {
-        if (token === requestToken) detailError = String(error);
-      })
-      .finally(() => {
-        if (token === requestToken) loading = false;
-      });
+    bookPromise = fetch(`${base}/library/books/${id}`).then(async (response) => {
+      if (response.status === 423) throw new Error("Calibre is open - close it and retry.");
+      if (!response.ok) throw new Error(`Book detail failed with HTTP ${response.status}`);
+      const book = (await response.json()) as BookDetail;
+      cache.set(id, book);
+      return book;
+    });
   });
 </script>
 
@@ -60,83 +40,85 @@
   <aside class="panel" aria-label="Book detail">
     <button type="button" class="close" aria-label="Close detail" onclick={close}>x</button>
 
-    {#if loading}
-      <p class="status">Loading book...</p>
-    {:else if detailError}
-      <p class="status error">{detailError}</p>
-    {:else if detail && $backendBase}
-      <div class="cover">
-        {#if coverFailed}
-          <span>Book</span>
-        {:else}
-          <img
-            src={`${$backendBase}/library/books/${detail.id}/cover`}
-            alt=""
-            loading="lazy"
-            onerror={() => (coverFailed = true)}
-          />
-        {/if}
-      </div>
+    {#if bookPromise !== null}
+      {#await bookPromise}
+        <p class="status">Loading book...</p>
+      {:then book}
+        <div class="cover">
+          {#if coverFailed}
+            <span>Book</span>
+          {:else}
+            <img
+              src={`${$backendBase}/library/books/${book.id}/cover`}
+              alt=""
+              loading="lazy"
+              onerror={() => (coverFailed = true)}
+            />
+          {/if}
+        </div>
 
-      <div class="identity">
-        <h2>{detail.title}</h2>
-        <p>{detail.authors.join(", ")}</p>
-      </div>
+        <div class="identity">
+          <h2>{book.title}</h2>
+          <p>{book.authors.join(", ")}</p>
+        </div>
 
-      <dl>
-        {#if detail.series}
+        <dl>
+          {#if book.series}
+            <div>
+              <dt>Series</dt>
+              <dd>{book.series}{book.series_index ? ` #${book.series_index}` : ""}</dd>
+            </div>
+          {/if}
+          {#if book.pubdate}
+            <div>
+              <dt>Year</dt>
+              <dd>{book.pubdate.slice(0, 4)}</dd>
+            </div>
+          {/if}
           <div>
-            <dt>Series</dt>
-            <dd>{detail.series}{detail.series_index ? ` #${detail.series_index}` : ""}</dd>
+            <dt>Languages</dt>
+            <dd>{book.languages.join(", ") || "Unknown"}</dd>
           </div>
-        {/if}
-        {#if year}
           <div>
-            <dt>Year</dt>
-            <dd>{year}</dd>
+            <dt>Formats</dt>
+            <dd>{book.formats.join(", ") || "None"}</dd>
           </div>
-        {/if}
-        <div>
-          <dt>Languages</dt>
-          <dd>{detail.languages.join(", ") || "Unknown"}</dd>
-        </div>
-        <div>
-          <dt>Formats</dt>
-          <dd>{detail.formats.join(", ") || "None"}</dd>
-        </div>
-      </dl>
+        </dl>
 
-      <section>
-        <h3>Tags</h3>
-        <div class="chips">
-          {#each detail.tags as tag}
-            <span>{tag}</span>
-          {/each}
-        </div>
-      </section>
-
-      {#if hasExtras}
         <section>
-          <h3>Extras</h3>
+          <h3>Tags</h3>
           <div class="chips">
-            {#each detail.extras.subgenres as subgenre}
-              <span>{subgenre}</span>
-            {/each}
-            {#each detail.extras.themes as theme}
-              <span>{theme}</span>
+            {#each book.tags as tag}
+              <span>{tag}</span>
             {/each}
           </div>
         </section>
-      {/if}
 
-      {#if detail.comments}
-        <section>
-          <h3>Comments</h3>
-          <div class="comments">{detail.comments}</div>
-        </section>
-      {/if}
+        {#if book.extras.subgenres.length > 0 || book.extras.themes.length > 0}
+          <section>
+            <h3>Extras</h3>
+            <div class="chips">
+              {#each book.extras.subgenres as subgenre}
+                <span>{subgenre}</span>
+              {/each}
+              {#each book.extras.themes as theme}
+                <span>{theme}</span>
+              {/each}
+            </div>
+          </section>
+        {/if}
 
-      <button type="button" class="edit" disabled>Coming in M2</button>
+        {#if book.comments}
+          <section>
+            <h3>Comments</h3>
+            <div class="comments">{book.comments}</div>
+          </section>
+        {/if}
+
+        <button type="button" class="edit" disabled>Coming in M2</button>
+      {:catch err}
+        <p class="status error">{err}</p>
+      {/await}
     {/if}
   </aside>
 {/if}

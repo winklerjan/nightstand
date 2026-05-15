@@ -52,7 +52,7 @@ def cover(book_id: int) -> FileResponse | JSONResponse:
         return _locked_response(error)
     if cover_path is None:
         raise HTTPException(status_code=404, detail="Cover not found")
-    return FileResponse(Path(cover_path))
+    return FileResponse(Path(cover_path), headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.get("/tags", response_model=None)

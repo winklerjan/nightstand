@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,10 @@ class CalibreLockedError(RuntimeError):
     pass
 
 
+# Maps book_id → book folder (parent of format files). Built once, reused for covers and comments.
+_folder_cache: dict[int, Path] | None = None
+
+
 def _run_calibredb(args: list[str]) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         ["calibredb", *args],
@@ -43,6 +48,38 @@ def _run_calibredb(args: list[str]) -> subprocess.CompletedProcess[str]:
             raise CalibreLockedError("Calibre GUI is open - close it and retry.")
         raise RuntimeError(result.stderr.strip() or "calibredb command failed")
     return result
+
+
+def _build_folder_cache(library_path: str) -> dict[int, Path]:
+    result = _run_calibredb(
+        ["list", "--library-path", library_path, "--for-machine", "--fields", "id,formats"]
+    )
+    cache: dict[int, Path] = {}
+    for book in json.loads(result.stdout):
+        bid = int(book.get("id", -1))
+        formats = _as_list(book.get("formats"))
+        if formats:
+            cache[bid] = Path(formats[0]).parent
+    return cache
+
+
+def _book_folder(library_path: str, book_id: int) -> Path | None:
+    global _folder_cache
+    if _folder_cache is None:
+        _folder_cache = _build_folder_cache(library_path)
+    return _folder_cache.get(book_id)
+
+
+def _read_opf_comments(folder: Path) -> str | None:
+    opf = folder / "metadata.opf"
+    if not opf.is_file():
+        return None
+    try:
+        root = ET.parse(str(opf)).getroot()
+        elem = root.find(".//{http://purl.org/dc/elements/1.1/}description")
+        return elem.text if elem is not None else None
+    except ET.ParseError:
+        return None
 
 
 def list_first(library_path: str) -> dict:
@@ -99,6 +136,7 @@ def _normalize_lookup(value: str) -> str:
 
 
 def list_books(library_path: str) -> list[dict[str, Any]]:
+    global _folder_cache
     result = _run_calibredb(
         [
             "list",
@@ -110,27 +148,39 @@ def list_books(library_path: str) -> list[dict[str, Any]]:
         ]
     )
     books = json.loads(result.stdout)
+    # Pre-populate folder cache while we already have format paths.
+    # This ensures cover requests never need to spawn a calibredb process.
+    if _folder_cache is None:
+        cache: dict[int, Path] = {}
+        for book in books:
+            bid = int(book.get("id", -1))
+            formats = _as_list(book.get("formats"))
+            if formats:
+                cache[bid] = Path(formats[0]).parent
+        _folder_cache = cache
     return [_normalize_book(book) for book in books]
 
 
 def get_book(library_path: str, book_id: int) -> dict[str, Any] | None:
+    # Fetch all books without the comments field (calibredb list with comments hangs on large
+    # libraries), filter by id in Python, then read comments from the book's metadata.opf directly.
     result = _run_calibredb(
         [
             "list",
             "--library-path",
             library_path,
             "--for-machine",
-            "--search",
-            f"id:{book_id}",
             "--fields",
-            "id,title,authors,tags,series,series_index,languages,pubdate,comments,formats",
+            "id,title,authors,tags,series,series_index,languages,pubdate,formats",
         ]
     )
     books = json.loads(result.stdout)
-    if not books:
+    match = next((b for b in books if int(b.get("id", -1)) == book_id), None)
+    if match is None:
         return None
-    book = _normalize_book(books[0])
-    book["comments"] = books[0].get("comments")
+    book = _normalize_book(match)
+    folder = _book_folder(library_path, book_id)
+    book["comments"] = _read_opf_comments(folder) if folder else None
     return book
 
 
@@ -185,20 +235,8 @@ def read_metadata_extras(book_title: str, book_authors: list[str]) -> dict[str, 
 
 
 def get_cover_path(library_path: str, book_id: int) -> Path | None:
-    result = _run_calibredb(
-        [
-            "get_metadata",
-            "--library-path",
-            library_path,
-            "--for-machine",
-            str(book_id),
-        ]
-    )
-    metadata = json.loads(result.stdout)
-    cover = metadata.get("cover")
-    if not cover:
+    folder = _book_folder(library_path, book_id)
+    if folder is None:
         return None
-    cover_path = Path(str(cover))
-    if not cover_path.is_file():
-        return None
-    return cover_path
+    cover = folder / "cover.jpg"
+    return cover if cover.is_file() else None
