@@ -26,7 +26,7 @@ When state files conflict with code or git history, this order wins:
 
 ## Claiming a session
 
-Run foresight before writing any code. In Claude, use `/foresight`. In Codex TUI, use `$baton-pass run foresight` or plain language such as "Use Baton Pass to run foresight for this repo"; `/foresight` is not a native Codex slash command.
+Run foresight before writing any code. Use Claude's repo commands directly (`/foresight`, `/baton-pass`, `/save-state`, etc.); do not install repo-local Codex skill/plugin copies.
 
 ## Ending a session
 
