@@ -1,9 +1,14 @@
 import json
 import os
 import subprocess
+import threading
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
+
+# calibredb takes an exclusive lock on the library; concurrent invocations race
+# and the loser exits with "Another calibre program is running". Serialize here.
+_calibredb_lock = threading.Lock()
 
 
 def _clean_env() -> dict:
@@ -37,12 +42,13 @@ _folder_cache: dict[int, Path] | None = None
 
 
 def _run_calibredb(args: list[str]) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        ["calibredb", *args],
-        capture_output=True,
-        text=True,
-        env=_clean_env(),
-    )
+    with _calibredb_lock:
+        result = subprocess.run(
+            ["calibredb", *args],
+            capture_output=True,
+            text=True,
+            env=_clean_env(),
+        )
     if result.returncode != 0:
         if "Another calibre program" in result.stderr:
             raise CalibreLockedError("Calibre GUI is open - close it and retry.")
